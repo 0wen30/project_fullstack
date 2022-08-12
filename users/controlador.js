@@ -1,6 +1,7 @@
 const userModel = require("./modelo");
 const { crearToken, encriptarPassword, validarPassword } = require("./helpers");
 const jwt = require("jsonwebtoken");
+const { ACCESS_TOKEN_SECRET,REFRESH_TOKEN_SECRET } = process.env;
 
 const registrar = async (req, res) => {
     try {
@@ -18,7 +19,7 @@ const registrar = async (req, res) => {
         password = await encriptarPassword(password);
 
         const user = await userModel.create({ nombre, apellido, email, password });
-        user.token = await crearToken(user._id, res);
+        user.token = await crearToken(user._id, ACCESS_TOKEN_SECRET);
 
         res.status(201).json(user);
 
@@ -34,23 +35,17 @@ const ingresar = async (req, res) => {
         const { email, password } = req.body;
 
         const user = await userModel.findOne({ email });
-        if (!user) {
-            return res.status(400).send("Usuario Invalido");
-        }
+        if (!user) return res.status(400).send("Usuario Invalido");
 
         const {id} = user;
-
         const coincidePassword = await validarPassword(password, user.password);
-        if (coincidePassword) {
-            user.token = await crearToken(id);
+        if (!coincidePassword) return res.status(400).send("Password Invalido");
 
-            const refreshToken = jwt.sign({ id }, process.env.REFRESH_TOKEN_SECRET, { expiresIn: '1d' });
-            res.cookie('jwt', refreshToken, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 24 * 60 * 60 * 1000 });
-
-            return res.status(200).json(user);
-        }
-
-        res.status(400).send("Password Invalido");
+        user.token = jwt.sign({ id }, ACCESS_TOKEN_SECRET, { expiresIn: '3m' });
+        //res.cookie('token', user.token, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 180 * 1000 });
+        const refreshToken = jwt.sign({ id }, REFRESH_TOKEN_SECRET, { expiresIn: '1d' });
+        res.cookie('refresh', refreshToken, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 24 * 60 * 60 * 1000 });
+        return res.status(200).json(user);
 
     } catch (error) {
         console.log(error);
@@ -58,27 +53,7 @@ const ingresar = async (req, res) => {
     }
 };
 
-const refresh = (req, res) => {
-    if (req.cookies?.jwt) {
-        const refreshToken = req.cookies.jwt;
-
-        jwt.verify(refreshToken, process.env.REFRESH_TOKEN_SECRET, (err, decoded) => {
-            if (err) {
-                return res.status(406).json({ message: 'Unauthorized' });
-            }
-            else {
-                const id = decoded.id;
-                const accessToken = jwt.sign({ id }, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1m' });
-                return res.json({ accessToken });
-            }
-        })
-    } else {
-        return res.status(406).json({ message: 'Unauthorized' });
-    }
-}
-
 module.exports = {
     registrar,
-    ingresar,
-    refresh
+    ingresar
 }

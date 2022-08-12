@@ -4,7 +4,7 @@ document.querySelector("#enviar").addEventListener("click",async()=>{
 
     const object = JSON.stringify({email,password});console.log(object)
 
-    const respuesta = await fetch("/ingresar",{
+    const respuesta = await fetch("user/ingresar",{
         method:"POST",
         headers: { 'Content-Type': 'application/json' },
         body:object
