@@ -1,17 +1,16 @@
 const bcrypt = require("bcryptjs");
-const jsonwebtoken = require("jsonwebtoken");
 
-const encriptarPassword = async(password) => {
+const encryptPassword = async(password) => {
     const encryptedPassword = await bcrypt.hash(password, 10);
     return encryptedPassword;
 }
 
-const validarPassword = async(pwdIngresado,pwdGuardado)=>{
-    return await bcrypt.compare(pwdIngresado, pwdGuardado);
+const validatePassword = async(pwdIn,savedPassword)=>{
+    return await bcrypt.compare(pwdIn, savedPassword);
 }
 
 
 module.exports = {
-    encriptarPassword,
-    validarPassword
+    encryptPassword,
+    validatePassword
 }

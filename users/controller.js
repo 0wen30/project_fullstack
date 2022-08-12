@@ -1,13 +1,13 @@
-const userModel = require("./modelo");
-const { crearToken, encriptarPassword, validarPassword } = require("./helpers");
+const userModel = require("./model");
+const { encryptPassword, validatePassword } = require("./helpers");
 const jwt = require("jsonwebtoken");
 const { ACCESS_TOKEN_SECRET,REFRESH_TOKEN_SECRET } = process.env;
 
-const registrar = async (req, res) => {
+const signup = async (req, res) => {
     try {
 
-        let { nombre, apellido, email, password } = req.body;
-        if (!(email && password && nombre && apellido)) {
+        let { name, lastname, email, password } = req.body;
+        if (!(email && password && name && lastname)) {
             return res.status(400).send("Todos los datos son requeridos");
         }
 
@@ -16,10 +16,10 @@ const registrar = async (req, res) => {
             return res.status(409).json({ error: "El usuario ya existe" });
         }
 
-        password = await encriptarPassword(password);
+        password = await encryptPassword(password);
 
-        const user = await userModel.create({ nombre, apellido, email, password });
-        user.token = await crearToken(user._id, ACCESS_TOKEN_SECRET);
+        const user = await userModel.create({ name, lastname, email, password });
+        user.token = await jwt.sign({ id:user._id }, ACCESS_TOKEN_SECRET, { expiresIn: '1d' });
 
         res.status(201).json(user);
 
@@ -29,7 +29,7 @@ const registrar = async (req, res) => {
     }
 };
 
-const ingresar = async (req, res) => {
+const signin = async (req, res) => {
     try {
 
         const { email, password } = req.body;
@@ -37,13 +37,11 @@ const ingresar = async (req, res) => {
         const user = await userModel.findOne({ email });
         if (!user) return res.status(400).send("Usuario Invalido");
 
-        const {id} = user;
-        const coincidePassword = await validarPassword(password, user.password);
+        const coincidePassword = await validatePassword(password, user.password);
         if (!coincidePassword) return res.status(400).send("Password Invalido");
 
-        user.token = jwt.sign({ id }, ACCESS_TOKEN_SECRET, { expiresIn: '3m' });
-        //res.cookie('token', user.token, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 180 * 1000 });
-        const refreshToken = jwt.sign({ id }, REFRESH_TOKEN_SECRET, { expiresIn: '1d' });
+        user.token = jwt.sign({ id:user._id }, ACCESS_TOKEN_SECRET, { expiresIn: '3m' });
+        const refreshToken = jwt.sign({ id:user._id }, REFRESH_TOKEN_SECRET, { expiresIn: '1d' });
         res.cookie('refresh', refreshToken, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 24 * 60 * 60 * 1000 });
         return res.status(200).json(user);
 
@@ -54,6 +52,5 @@ const ingresar = async (req, res) => {
 };
 
 module.exports = {
-    registrar,
-    ingresar
+    signin, signup
 }

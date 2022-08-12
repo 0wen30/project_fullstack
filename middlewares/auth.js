@@ -1,4 +1,4 @@
-const jwt = require("jsonwebtoken");
+const jsonwebtoken = require("jsonwebtoken");
 
 const { ACCESS_TOKEN_SECRET,REFRESH_TOKEN_SECRET } = process.env;
 
@@ -6,9 +6,9 @@ const refreshToken = async(req, res) => {
 
     if (req.cookies?.refresh) {
         const refreshToken = req.cookies.refresh;
-        const decoded = await jwt.verify(refreshToken, REFRESH_TOKEN_SECRET);
+        const decoded = await jsonwebtoken.verify(refreshToken, REFRESH_TOKEN_SECRET);
         const id = decoded.id;
-        const accessToken = await jsonwebtoken.sign({id},secret,{expiresIn: "5m"});
+        const accessToken = await jsonwebtoken.sign({id},ACCESS_TOKEN_SECRET,{expiresIn: "5m"});
         res.cookie('refresh', accessToken, { httpOnly: true, sameSite: 'None', secure: true, maxAge: 30 * 1000 });
         return res.json({accessToken});
     } else {
@@ -16,7 +16,7 @@ const refreshToken = async(req, res) => {
     }
 };
 
-const validarToken = (req, res, next) => {
+const validateToken = (req, res, next) => {
 
     const {token} = req.headers || req.body || req.query;
 
@@ -27,7 +27,7 @@ const validarToken = (req, res, next) => {
     }
     
     try {
-        const decoded = jwt.verify(token, ACCESS_TOKEN_SECRET);
+        const decoded = jsonwebtoken.verify(token, ACCESS_TOKEN_SECRET);
         req.user = decoded;
     } catch (err) {
         return res.status(401).send("Token Invalido");
@@ -35,6 +35,6 @@ const validarToken = (req, res, next) => {
     return next();
 };
 module.exports = {
-    refreshToken,validarToken
+    refreshToken,validateToken
 };
 

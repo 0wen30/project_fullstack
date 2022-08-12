@@ -3,9 +3,9 @@ require("./config/database").conectarConBD();
 
 const express = require("express");
 const cookieparser = require("cookie-parser");
-const {validarToken, refreshToken} = require("./middlewares/auth");
+const {validateToken, refreshToken} = require("./middlewares/auth");
 const userRouter = require("./users/routes");
-const equiposRouter = require("./equipos/routes.js");
+const teamsRouter = require("./teams/routes.js");
 
 const app = express();
 
@@ -15,10 +15,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.static("public"))
 
 app.use("/user", userRouter);
-app.use("/team",validarToken,equiposRouter);
+app.use("/teams",validateToken,teamsRouter);
 
 app.get('/refresh', refreshToken);
-app.get("/home", validarToken, (req, res) => {
+app.get("/home", validateToken, (req, res) => {
     res.status(200).send("Puedes acceder");
 });
 
